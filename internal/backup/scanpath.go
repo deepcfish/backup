@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 // ScanPath 扫描指定路径下的所有文件和目录，返回文件条目列表
