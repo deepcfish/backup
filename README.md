@@ -78,8 +78,20 @@
 
 ### 编译
 
+**方式一：从项目根目录编译**
 ```bash
+go build -o backup ./cmd/backup
+```
+
+**方式二：进入 cmd/backup 目录编译**
+```bash
+cd cmd/backup
 go build -o backup
+```
+
+**方式三：使用 go install（安装到 $GOPATH/bin 或 $GOBIN）**
+```bash
+go install ./cmd/backup
 ```
 
 ### 使用方法
@@ -136,15 +148,21 @@ go build -o backup
 
 ```
 backup/
-├── types.go      # 数据结构定义（FileEntry, FileType）
-├── filter.go     # 过滤功能实现
-├── scanpath.go   # 路径扫描函数
-├── pack.go       # 打包函数
-├── unpack.go     # 解包函数
-├── main.go       # 命令行入口
-├── go.mod        # Go 模块定义
-└── README.md     # 说明文档
+├── types.go         # 数据结构定义（FileEntry, FileType）
+├── filter.go        # 过滤功能实现
+├── scanpath.go      # 路径扫描函数
+├── pack.go          # 打包函数
+├── unpack.go        # 解包函数
+├── go.mod           # Go 模块定义
+├── README.md        # 说明文档
+└── cmd/
+    └── backup/
+        └── main.go  # 命令行入口（package main）
 ```
+
+**包结构说明：**
+- 根目录：`package backup` - 库代码，提供核心功能
+- `cmd/backup/`：`package main` - 可执行程序入口
 
 ## 注意事项
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"backup"
+	"backup/internal/backup"
 )
 
 func main() {
@@ -248,3 +248,4 @@ func parseSize(sizeStr string) *int64 {
 	
 	return nil
 }
+
