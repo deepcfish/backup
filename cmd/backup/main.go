@@ -106,7 +106,7 @@ func printUsage() {
   %s pack -source /home/user/docs -output backup.tar.gz -types "file,dir" -min-size 1K -max-size 10M
   %s unpack -archive backup.tar.gz -target /tmp/restore
 
-`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
+`, filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]), filepath.Base(os.Args[0]))
 }
 
 // buildFilter 从命令行参数构建过滤条件
