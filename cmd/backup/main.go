@@ -8,13 +8,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"
 
 	"backup/internal/backup"
 )
 
 func main() {
 
-	backup.opengui()
+	runtime.LockOSThread() // 确保 GTK 在主线程运行
+	backup.opengui() //打开窗口
 
 	var (
 		packCmd   = flag.NewFlagSet("pack", flag.ExitOnError)
