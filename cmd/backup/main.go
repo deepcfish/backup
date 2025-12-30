@@ -15,7 +15,6 @@ import (
 
 func main() {
 
-	runtime.LockOSThread() // 确保 GTK 在主线程运行
 	backup.Opengui() //打开窗口
 
 	var (
