@@ -2,26 +2,18 @@ package backup
 import (
 	_"fmt"
 	"log"
-	"github.com/gotk3/gotk3/gtk"
+	"fyne.io/fyne/v2/app"
+    "fyne.io/fyne/v2/container"
+    "fyne.io/fyne/v2/widget"
 )
 
 func opengui() {
-    gtk.Init(nil)
+    a := app.New()
+    w := a.NewWindow("Hello Fyne")
 
-    win, err := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
-    if err != nil {
-        log.Fatal(err)
-    }
-    win.SetTitle("Hello GTK3")
-    win.SetDefaultSize(400, 300)
+    label := widget.NewLabel("Hello, 小佩可茜忒")
+    w.SetContent(container.NewCenter(label))
 
-    win.Connect("destroy", func() {
-        gtk.MainQuit()
-    })
-
-    label, _ := gtk.LabelNew("Hello, 小佩可茜忒")
-    win.Add(label)
-
-    win.ShowAll()
-    gtk.Main()
+    w.Resize(fyne.NewSize(400, 300))
+    w.ShowAndRun()
 }
