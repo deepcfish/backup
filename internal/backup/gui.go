@@ -1,10 +1,10 @@
 package backup
 import (
-	"fmt"
+	_"fmt"
 	"fyne.io/fyne/v2/app"
     "fyne.io/fyne/v2/container"
     "fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/dialog"
+	_"fyne.io/fyne/v2/dialog"
 )
 
 func opengui() {
