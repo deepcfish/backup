@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"runtime"
+	_"runtime"
 
 	"backup/internal/backup"
 )
