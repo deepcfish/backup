@@ -16,7 +16,7 @@ import (
 func main() {
 
 	runtime.LockOSThread() // 确保 GTK 在主线程运行
-	opengui() //打开窗口
+	backup.Opengui() //打开窗口
 
 	var (
 		packCmd   = flag.NewFlagSet("pack", flag.ExitOnError)

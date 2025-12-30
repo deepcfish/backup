@@ -7,7 +7,7 @@ import (
 	_"fyne.io/fyne/v2/dialog"
 )
 
-func opengui() {
+func Opengui() {
 	a := app.New()
 	w := a.NewWindow("Hello")
 
