@@ -13,6 +13,9 @@ import (
 )
 
 func main() {
+
+	backup.opengui()
+
 	var (
 		packCmd   = flag.NewFlagSet("pack", flag.ExitOnError)
 		unpackCmd = flag.NewFlagSet("unpack", flag.ExitOnError)
