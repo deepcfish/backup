@@ -40,17 +40,13 @@ func PackClicked(w fyne.Window) {
 			return
 		}
 		root := rootURI.Path() //获取路径
-		dialog.ShowFileSave(func(save fyne.URIWriteCloser, err error) {
-			if err != nil || save == nil {
+		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+			if err != nil || uri == nil {
 				return
 			}
 			// 获取保存路径
-			archivePath := save.URI().Path() + ".tar" //添加类型后缀
-			save.Close() // 关闭 Fyne 创建的文件句柄, 会创建空文件
-			// 如果 Fyne 创建了空文件，删除它
-			//if fileInfo, err := os.Stat(archivePath); err == nil && fileInfo.Size() == 0 {
-				//os.Remove(archivePath)
-			//}
+			archivePath := uri.URI().Path() + ".tar" //添加类型后缀
+			uri.Close()
 			err = Pack(root, archivePath, nil)
 			if err != nil {
 				dialog.ShowError(err, w)
