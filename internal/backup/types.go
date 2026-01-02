@@ -29,5 +29,13 @@ type FileEntry struct {
 	LinkName   string   // 若为硬链接，记录链接到的文件路径（相对于根目录）
 	DevMajor   int64    // 设备主编号（设备文件）
 	DevMinor   int64    // 设备次编号（设备文件）
+	Compress   bool     // 压缩标记
+	Encrypt    bool     // 加密标记
+}
+
+type PackOptions struct {
+    Compress bool      // 是否压缩
+    Encrypt  bool	   // 是否加密
+    Password string    //密码串
 }
 

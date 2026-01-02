@@ -1,6 +1,10 @@
 package backup
 
 import (
+	"compress/flate"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -16,6 +20,15 @@ import (
 // restoreRoot: 解包的目标目录
 // 返回: 可能的错误
 func Unpack(archivePath string, restoreRoot string) error {
+	return UnpackWithOptions(archivePath, restoreRoot, PackOptions{})
+}
+
+// UnpackWithOptions 从归档文件解包到指定目录（支持解压缩和解密）
+// archivePath: 归档文件路径（自定义格式，必须是文件，不能是目录）
+// restoreRoot: 解包的目标目录
+// options: 解包选项（密码等）
+// 返回: 可能的错误
+func UnpackWithOptions(archivePath string, restoreRoot string, options PackOptions) error {
 	// 验证归档文件路径：必须是文件，不能是目录
 	fileInfo, err := os.Stat(archivePath)
 	if err != nil {
@@ -32,9 +45,49 @@ func Unpack(archivePath string, restoreRoot string) error {
 	}
 	defer inFile.Close()
 	
-	// 读取并验证文件头
-	if err := readHeader(inFile); err != nil {
+	// 读取并验证文件头，获取标志位
+	compress, encrypt, err := readHeaderWithFlags(inFile)
+	if err != nil {
 		return fmt.Errorf("读取文件头失败: %v", err)
+	}
+	
+	// 创建读取链：文件 -> 解密 -> 解压缩 -> 实际读取
+	var finalReader io.Reader = inFile
+	
+	// 如果启用加密，添加解密层
+	if encrypt {
+		if options.Password == "" {
+			return fmt.Errorf("归档文件已加密，需要提供密码")
+		}
+		// 从密码生成密钥
+		key := sha256.Sum256([]byte(options.Password))
+		block, err := aes.NewCipher(key[:])
+		if err != nil {
+			return fmt.Errorf("创建解密器失败: %v", err)
+		}
+		aesGCM, err := cipher.NewGCM(block)
+		if err != nil {
+			return fmt.Errorf("创建GCM失败: %v", err)
+		}
+		// 读取 nonce
+		nonceSize := aesGCM.NonceSize()
+		nonce := make([]byte, nonceSize)
+		if _, err := io.ReadFull(inFile, nonce); err != nil {
+			return fmt.Errorf("读取 nonce 失败: %v", err)
+		}
+		// 创建解密读取器
+		finalReader = &decryptReader{
+			reader: inFile,
+			gcm:    aesGCM,
+			nonce:  nonce,
+		}
+	}
+	
+	// 如果启用压缩，添加解压缩层
+	if compress {
+		flateReader := flate.NewReader(finalReader)
+		defer flateReader.Close()
+		finalReader = flateReader
 	}
 	
 	// 确保目标目录存在
@@ -53,7 +106,7 @@ func Unpack(archivePath string, restoreRoot string) error {
 	
 	// 循环读取条目
 	for {
-		entryType, err := readEntryType(inFile)
+		entryType, err := readEntryType(finalReader)
 		if err != nil {
 			return fmt.Errorf("读取条目类型失败: %v", err)
 		}
@@ -64,7 +117,7 @@ func Unpack(archivePath string, restoreRoot string) error {
 		}
 		
 		// 读取条目
-		entry, err := readEntry(inFile, entryType)
+		entry, err := readEntry(finalReader, entryType)
 		if err != nil {
 			return fmt.Errorf("读取条目失败: %v", err)
 		}
@@ -88,7 +141,7 @@ func Unpack(archivePath string, restoreRoot string) error {
 		// 根据文件类型处理
 		switch entryType {
 		case entryTypeFile:
-			if err := restoreFile(inFile, targetPath, entry); err != nil {
+			if err := restoreFile(finalReader, targetPath, entry); err != nil {
 				return err
 			}
 			
@@ -130,33 +183,113 @@ func Unpack(archivePath string, restoreRoot string) error {
 	return nil
 }
 
-// readHeader 读取并验证文件头
-func readHeader(r io.Reader) error {
+// readHeaderWithFlags 读取并验证文件头，返回压缩和加密标志
+func readHeaderWithFlags(r io.Reader) (compress, encrypt bool, err error) {
 	// 读取魔数
 	magic := make([]byte, 4)
 	if _, err := io.ReadFull(r, magic); err != nil {
-		return err
+		return false, false, err
 	}
 	if string(magic) != magicNumber {
-		return fmt.Errorf("无效的归档文件格式，魔数不匹配")
+		return false, false, fmt.Errorf("无效的归档文件格式，魔数不匹配")
 	}
 	
 	// 读取版本号
 	var version uint32
 	if err := binary.Read(r, binary.LittleEndian, &version); err != nil {
-		return err
+		return false, false, err
 	}
-	if version != formatVersion {
-		return fmt.Errorf("不支持的归档文件版本: %d", version)
-	}
-	
-	// 跳过保留字段
-	reserved := make([]byte, 8)
-	if _, err := io.ReadFull(r, reserved); err != nil {
-		return err
+	if version < 1 || version > formatVersion {
+		return false, false, fmt.Errorf("不支持的归档文件版本: %d", version)
 	}
 	
-	return nil
+	// 读取标志位（版本2+）
+	if version >= 2 {
+		var flags byte
+		if err := binary.Read(r, binary.LittleEndian, &flags); err != nil {
+			return false, false, err
+		}
+		compress = (flags & flagCompress) != 0
+		encrypt = (flags & flagEncrypt) != 0
+		
+		// 跳过保留字段（7字节）
+		reserved := make([]byte, 7)
+		if _, err := io.ReadFull(r, reserved); err != nil {
+			return false, false, err
+		}
+	} else {
+		// 版本1：跳过保留字段（8字节）
+		reserved := make([]byte, 8)
+		if _, err := io.ReadFull(r, reserved); err != nil {
+			return false, false, err
+		}
+	}
+	
+	return compress, encrypt, nil
+}
+
+// decryptReader 实现解密读取
+type decryptReader struct {
+	reader   io.Reader
+	gcm      cipher.AEAD
+	nonce    []byte
+	buffer   []byte
+	position int
+}
+
+func (dr *decryptReader) Read(p []byte) (n int, err error) {
+	// 如果缓冲区有数据，先读取缓冲区
+	if dr.position < len(dr.buffer) {
+		n = copy(p, dr.buffer[dr.position:])
+		dr.position += n
+		if dr.position >= len(dr.buffer) {
+			dr.buffer = nil
+			dr.position = 0
+		}
+		return n, nil
+	}
+	
+	// 读取加密块
+	// 每个块的结构：nonce(12字节) + 密文
+	nonceSize := dr.gcm.NonceSize()
+	
+	// 先读取 nonce
+	blockNonce := make([]byte, nonceSize)
+	if _, err := io.ReadFull(dr.reader, blockNonce); err != nil {
+		if err == io.EOF {
+			return 0, io.EOF
+		}
+		return 0, fmt.Errorf("读取 nonce 失败: %v", err)
+	}
+	
+	// 读取密文长度（我们需要知道密文的大小）
+	// 由于 GCM 的密文长度 = 明文长度 + tag长度(16字节)
+	// 我们尝试读取一个合理大小的块
+	blockSize := 64 * 1024 // 64KB 明文
+	ciphertextSize := blockSize + dr.gcm.Overhead()
+	ciphertext := make([]byte, ciphertextSize)
+	
+	read, err := dr.reader.Read(ciphertext)
+	if read == 0 {
+		return 0, err
+	}
+	
+	// 解密
+	plaintext, err := dr.gcm.Open(nil, blockNonce, ciphertext[:read], nil)
+	if err != nil {
+		return 0, fmt.Errorf("解密失败: %v", err)
+	}
+	
+	// 将解密后的数据复制到输出
+	n = copy(p, plaintext)
+	
+	// 如果有剩余数据，保存到缓冲区
+	if n < len(plaintext) {
+		dr.buffer = plaintext[n:]
+		dr.position = 0
+	}
+	
+	return n, nil
 }
 
 // readEntryType 读取条目类型
