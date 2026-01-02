@@ -65,7 +65,7 @@ func UnpackClicked (w fyne.Window) {
 				return
 			}
 			defer save.Close()
-			err = Unpack(root, save.URI().Path())
+			err = Unpack(save.URI().Path(), root)
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
