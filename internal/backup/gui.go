@@ -40,13 +40,12 @@ func PackClicked(w fyne.Window) {
 			return
 		}
 		root := rootURI.Path() //获取路径
-		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err != nil || uri == nil {
 				return
 			}
 			// 获取保存路径
-			archivePath := uri.URI().Path() + ".tar" //添加类型后缀
-			uri.Close()
+			archivePath := uri.Path() + ".tar" //添加类型后缀
 			err = Pack(root, archivePath, nil)
 			if err != nil {
 				dialog.ShowError(err, w)
