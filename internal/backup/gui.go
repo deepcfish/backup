@@ -1,23 +1,53 @@
 package backup
+
 import (
-	_"fmt"
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-    "fyne.io/fyne/v2/container"
-    "fyne.io/fyne/v2/widget"
-	_"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	_"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/widget"
 )
 
 func Opengui() {
 	a := app.New()
 	w := a.NewWindow("Hello")
+	w.Resize(fyne.NewSize(800, 600))
 
+	intro := widget.NewLabel("这是一个简单的打包/解包工具。\n请选择需要操作的文件。")
 	hello := widget.NewLabel("Hello Fyne!")
+
 	w.SetContent(container.NewVBox(
-		hello,
+		intro,
 		widget.NewButton("Hi!", func() {
 			hello.SetText("Welcome :)")
 		}),
+		widget.NewButton("打包", func() {
+			onPackClicked(w)
+		}),
+		widget.NewButton("解包", func() {}),
 	))
 
 	w.ShowAndRun()
+}
+
+func onPackClicked(w fyne.Window) {
+	dialog.ShowFolderOpen(func(rootURI fyne.ListableURI, err error) {
+		if err != nil || rootURI == nil {
+			return
+		}
+		root := rootURI.Path() //获取路径
+		dialog.ShowFileSave(func(save fyne.URIWriteCloser, err error) {
+			if err != nil || save == nil {
+				return
+			}
+			defer save.Close()
+			err = Pack(root, save.URI().Path(), nil)
+			if err != nil {
+				dialog.ShowError(err, w)
+			} else {
+				dialog.ShowInformation("成功", "打包完成", w)
+			}
+		}, w)
+	}, w)
 }

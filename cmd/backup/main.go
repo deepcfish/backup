@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	_"runtime"
+	"runtime"
 
 	"backup/internal/backup"
 )
 
 func main() {
 
+	runtime.LockOSThread()
 	backup.Opengui() //打开窗口
 
 	var (
