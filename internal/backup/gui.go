@@ -55,22 +55,21 @@ func PackClicked(w fyne.Window) {
 }
 
 func UnpackClicked (w fyne.Window) {
-	dialog.ShowFolderOpen(func(rootURI fyne.ListableURI, err error) {
-		if err != nil || rootURI == nil {
-			return
-		}
-		root := rootURI.Path() //获取路径
-		dialog.ShowFileSave(func(save fyne.URIWriteCloser, err error) {
-			if err != nil || save == nil {
-				return
-			}
-			defer save.Close()
-			err = Unpack(root, save.URI().Path())
-			if err != nil {
-				dialog.ShowError(err, w)
-			} else {
-				dialog.ShowInformation("成功", "解包完成", w)
-			}
-		}, w)
-	}, w)
+    dialog.ShowFileOpen(func(archiveURI fyne.URIReadCloser, err error) {
+        if err != nil || archiveURI == nil {
+            return
+        }
+        archivePath := archiveURI.URI().Path()
+        dialog.ShowFolderOpen(func(destURI fyne.ListableURI, err error) {
+            if err != nil || destURI == nil {
+                return
+            }
+            targetPath := destURI.Path()
+            if err := Unpack(archivePath, targetPath); err != nil {
+                dialog.ShowError(err, w)
+                return
+            }
+            dialog.ShowInformation("成功", "解包完成", w)
+        }, w)
+    }, w)
 }
