@@ -12,10 +12,19 @@ import (
 )
 
 // Unpack 从归档文件解包到指定目录
-// archivePath: 归档文件路径（自定义格式）
+// archivePath: 归档文件路径（自定义格式，必须是文件，不能是目录）
 // restoreRoot: 解包的目标目录
 // 返回: 可能的错误
 func Unpack(archivePath string, restoreRoot string) error {
+	// 验证归档文件路径：必须是文件，不能是目录
+	fileInfo, err := os.Stat(archivePath)
+	if err != nil {
+		return fmt.Errorf("归档文件不存在或无法访问: %v", err)
+	}
+	if fileInfo.IsDir() {
+		return fmt.Errorf("归档路径是目录而不是文件: %s", archivePath)
+	}
+	
 	// 打开归档文件
 	inFile, err := os.Open(archivePath)
 	if err != nil {

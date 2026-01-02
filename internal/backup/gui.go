@@ -44,7 +44,7 @@ func PackClicked(w fyne.Window) {
 				return
 			}
 			defer save.Close()
-			err = Pack(root, save.URI().Path(), nil)
+			err = Pack(root, save.URI().Path() + ".tar", nil)
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
@@ -65,7 +65,7 @@ func UnpackClicked (w fyne.Window) {
 				return
 			}
 			defer save.Close()
-			err = Unpack(save.URI().Path(), root)
+			err = Unpack(root, save.URI().Path())
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
