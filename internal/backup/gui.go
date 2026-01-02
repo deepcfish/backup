@@ -10,7 +10,7 @@ import (
 )
 
 func Opengui() {
-	a := app.New()
+	a := app.NewWithID("Mypack.exe")
 	w := a.NewWindow("Mypack")
 	w.Resize(fyne.NewSize(800, 600))
 
@@ -23,15 +23,17 @@ func Opengui() {
 			hello.SetText("Welcome :)")
 		}),
 		widget.NewButton("打包", func() {
-			onPackClicked(w)
+			PackClicked(w)
 		}),
-		widget.NewButton("解包", func() {}),
+		widget.NewButton("解包", func() {
+			UnpackClicked(w)
+		}),
 	))
 
 	w.ShowAndRun()
 }
 
-func onPackClicked(w fyne.Window) {
+func PackClicked(w fyne.Window) {
 	dialog.ShowFolderOpen(func(rootURI fyne.ListableURI, err error) {
 		if err != nil || rootURI == nil {
 			return
@@ -47,6 +49,27 @@ func onPackClicked(w fyne.Window) {
 				dialog.ShowError(err, w)
 			} else {
 				dialog.ShowInformation("成功", "打包完成", w)
+			}
+		}, w)
+	}, w)
+}
+
+func UnpackClicked (w fyne.Window) {
+	dialog.ShowFolderOpen(func(rootURI fyne.ListableURI, err error) {
+		if err != nil || rootURI == nil {
+			return
+		}
+		root := rootURI.Path() //获取路径
+		dialog.ShowFileSave(func(save fyne.URIWriteCloser, err error) {
+			if err != nil || save == nil {
+				return
+			}
+			defer save.Close()
+			err = Unpack(root, save.URI().Path())
+			if err != nil {
+				dialog.ShowError(err, w)
+			} else {
+				dialog.ShowInformation("成功", "解包完成", w)
 			}
 		}, w)
 	}, w)
