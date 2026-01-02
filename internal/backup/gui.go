@@ -11,7 +11,7 @@ import (
 
 func Opengui() {
 	a := app.New()
-	w := a.NewWindow("Hello")
+	w := a.NewWindow("Mypack")
 	w.Resize(fyne.NewSize(800, 600))
 
 	intro := widget.NewLabel("这是一个简单的打包/解包工具。\n请选择需要操作的文件。")

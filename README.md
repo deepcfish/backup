@@ -5,9 +5,9 @@
 ## 功能特性
 
 ### 核心功能
-- **数据备份**：将目录树中的所有文件打包成 `.tar.gz` 格式的归档文件
+- **数据备份**：将目录树中的所有文件打包成自定义格式的归档文件
 - **数据还原**：从归档文件中恢复目录树到指定位置
-- **打包解包**：将所有备份文件拼接为一个大文件保存（.tar.gz 格式）
+- **打包解包**：将所有备份文件拼接为一个大文件保存（自定义格式）
 
 ### 文件类型支持（10分）
 支持 Linux 文件系统的各种特殊文件类型：
@@ -60,7 +60,7 @@
 - 自动检测硬链接关系
 
 ### 2. Pack(root string, archivePath string, filter *Filter) error
-将指定目录树打包到归档文件（`.tar.gz` 格式）。
+将指定目录树打包到归档文件（自定义格式）。
 - 支持所有文件类型的打包
 - 保留完整元数据
 - 支持过滤条件筛选文件
@@ -106,19 +106,19 @@ go install ./cmd/backup
 **带过滤条件：**
 ```bash
 # 只备份 .txt 和 .doc 文件，排除临时文件
-./backup pack -source /home/user/docs -output backup.tar.gz \
+./backup pack -source /home/user/docs -output backup.bkup \
   -include "*.txt,*.doc" -exclude "*.tmp"
 
 # 只备份普通文件和目录，大小在 1KB 到 10MB 之间
-./backup pack -source /home/user/docs -output backup.tar.gz \
+./backup pack -source /home/user/docs -output backup.bkup \
   -types "file,dir" -min-size 1K -max-size 10M
 
 # 备份指定时间范围内的文件
-./backup pack -source /home/user/docs -output backup.tar.gz \
+./backup pack -source /home/user/docs -output backup.bkup \
   -min-time "2024-01-01 00:00:00" -max-time "2024-12-31 23:59:59"
 
 # 组合多个过滤条件
-./backup pack -source /home/user/docs -output backup.tar.gz \
+./backup pack -source /home/user/docs -output backup.bkup \
   -include "*.txt" -exclude "*.tmp" -names "important*" \
   -min-size 1K -max-size 100M
 ```
@@ -131,12 +131,12 @@ go install ./cmd/backup
 
 示例：
 ```bash
-./backup unpack -archive backup.tar.gz -target /tmp/restore
+./backup unpack -archive backup.bkup -target /tmp/restore
 ```
 
 ## 实现说明
 
-- 使用 Go 标准库的 `archive/tar` 和 `compress/gzip` 实现打包功能
+- 使用自定义二进制格式实现打包功能（不使用标准库的 tar/gzip）
 - 采用流式处理，支持大文件
 - 使用相对路径存储，支持解包到任意位置
 - 包含路径安全检查，防止恶意路径逃逸
@@ -177,4 +177,4 @@ backup/
 - ✅ **文件类型支持（10分）**：支持管道/软链接/硬链接/设备文件等
 - ✅ **元数据支持（10分）**：支持属主/时间/权限等完整元数据
 - ✅ **自定义备份（各5分）**：支持路径/类型/名字/时间/尺寸筛选
-- ✅ **打包解包（10分）**：所有文件拼接为一个大文件（.tar.gz）
+- ✅ **打包解包（10分）**：所有文件拼接为一个大文件（自定义格式）
