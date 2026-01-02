@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"os"
+	
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -43,8 +45,16 @@ func PackClicked(w fyne.Window) {
 			if err != nil || save == nil {
 				return
 			}
-			defer save.Close()
-			err = Pack(root, save.URI().Path() + ".tar", nil)
+			// 获取保存路径
+			archivePath := save.URI().Path()
+			// 关闭 Fyne 创建的文件句柄（可能会创建空文件）
+			save.Close()
+			// 如果 Fyne 创建了空文件，删除它
+			if fileInfo, err := os.Stat(archivePath); err == nil && fileInfo.Size() == 0 {
+				os.Remove(archivePath)
+			}
+			// 使用 Pack() 创建实际的归档文件
+			err = Pack(root, archivePath, nil)
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
