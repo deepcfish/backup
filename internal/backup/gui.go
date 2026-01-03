@@ -18,7 +18,8 @@ import (
 func Opengui() {
 	a := app.NewWithID("Mypack.exe")
 	w := a.NewWindow("Mypack")
-	w.Resize(fyne.NewSize(800, 600))
+	w.Resize(fyne.NewSize(900, 700))
+	w.CenterOnScreen() // 窗口居中显示
 
 	intro := widget.NewLabel("这是一个简单的打包/解包工具。\n请选择需要操作的文件。")
 
@@ -119,6 +120,7 @@ func Opengui() {
 		)
 		PackClicked(w, opt, filter)
 	})
+	packBtn.Importance = widget.HighImportance
 
 	// 解包按钮
 	unpackBtn := widget.NewButton("解包", func() {
@@ -127,8 +129,10 @@ func Opengui() {
 		}
 		UnpackClicked(w, opt)
 	})
+	unpackBtn.Importance = widget.MediumImportance
 
-	w.SetContent(container.NewVBox(
+	// 主要内容区域（可滚动）
+	contentArea := container.NewVBox(
 		intro,
 		widget.NewSeparator(),
 		widget.NewLabel("压缩和加密选项:"),
@@ -137,9 +141,30 @@ func Opengui() {
 		passwordEntry,
 		widget.NewSeparator(),
 		filterAccordion,
-		widget.NewSeparator(),
-		packBtn,
-		unpackBtn,
+	)
+	
+	// 使用滚动容器包装内容区域
+	scrollContent := container.NewScroll(contentArea)
+	scrollContent.SetMinSize(fyne.NewSize(0, 400)) // 设置最小高度
+	
+	// 按钮区域（固定在底部，水平排列）
+	buttonArea := container.NewBorder(
+		nil, nil,
+		nil, nil,
+		container.NewHBox(
+			packBtn,
+			widget.NewSeparator(),
+			unpackBtn,
+		),
+	)
+
+	// 使用 Border 布局：顶部是滚动内容，底部是按钮
+	w.SetContent(container.NewBorder(
+		nil,           // 顶部
+		buttonArea,    // 底部（按钮）
+		nil,           // 左侧
+		nil,           // 右侧
+		scrollContent, // 中间（可滚动内容）
 	))
 
 	w.ShowAndRun()
