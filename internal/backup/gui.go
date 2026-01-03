@@ -181,8 +181,9 @@ func PackClicked(w fyne.Window, options PackOptions, filter *Filter) {
 				return
 			}
 			archivePath := save.URI().Path()
-			save.Close() // 关闭 Fyne 创建的文件句柄, 会创建空文件,待完善
-			if fileInfo, err := os.Stat(archivePath); err == nil && fileInfo.Size() == 0 { // 如果 Fyne 创建了空文件，删除它
+			save.Close() // 关闭 Fyne 创建的文件句柄（Fyne 会先创建空文件）
+			// 如果 Fyne 创建了空文件，删除它（我们会在 PackWithOptions 中创建实际的文件）
+			if fileInfo, err := os.Stat(archivePath); err == nil && fileInfo.Size() == 0 {
 				os.Remove(archivePath)
 			}
 			// 验证加密选项
@@ -190,7 +191,7 @@ func PackClicked(w fyne.Window, options PackOptions, filter *Filter) {
 				dialog.ShowError(fmt.Errorf("启用加密时必须提供密码"), w)
 				return
 			}
-			err = PackWithOptions(root, archivePath + ".tar", filter, options)
+			err = PackWithOptions(root, archivePath, filter, options)
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
