@@ -111,12 +111,13 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 	}
 	
 	// 如果启用压缩，添加压缩层
+	var flateWriter *flate.Writer
 	if options.Compress {
-		flateWriter, err := flate.NewWriter(finalWriter, flate.BestCompression)
+		var err error
+		flateWriter, err = flate.NewWriter(finalWriter, flate.BestCompression)
 		if err != nil {
 			return fmt.Errorf("创建压缩器失败: %v", err)
 		}
-		defer flateWriter.Close()
 		finalWriter = flateWriter
 	}
 	
@@ -136,6 +137,13 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 	// 写入结束标记
 	if err := writeEndMarker(finalWriter); err != nil {
 		return fmt.Errorf("写入结束标记失败: %v", err)
+	}
+	
+	// 关闭顺序：先关闭压缩层（刷新压缩数据），再关闭加密层（刷新加密数据）
+	if flateWriter != nil {
+		if err := flateWriter.Close(); err != nil {
+			return fmt.Errorf("关闭压缩器失败: %v", err)
+		}
 	}
 	
 	// 如果使用了加密写入器，需要关闭它来刷新缓冲区
