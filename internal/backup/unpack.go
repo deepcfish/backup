@@ -108,6 +108,9 @@ func UnpackWithOptions(archivePath string, restoreRoot string, options PackOptio
 	for {
 		entryType, err := readEntryType(finalReader)
 		if err != nil {
+			if err == io.EOF {
+				return fmt.Errorf("读取条目类型失败: 文件意外结束，可能文件不完整或已损坏")
+			}
 			return fmt.Errorf("读取条目类型失败: %v", err)
 		}
 		
