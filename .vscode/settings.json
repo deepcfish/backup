@@ -1,2 +1,7 @@
 {
+    "go.toolsEnvVars": {
+        "GOOS": "linux",
+        "GOARCH": "amd64"
+    },
+    "go.useLanguageServer": true
 }

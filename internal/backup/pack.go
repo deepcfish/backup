@@ -67,6 +67,11 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 	}
 	defer outFile.Close()
 	
+	// 先写入文件头（不加密不压缩，以便解包时能直接读取）
+	if err := writeHeaderWithFlags(outFile, options.Compress, options.Encrypt); err != nil {
+		return fmt.Errorf("写入文件头失败: %v", err)
+	}
+	
 	// 创建写入链：文件 -> 加密 -> 压缩 -> 实际写入
 	var finalWriter io.Writer = outFile
 	
@@ -91,7 +96,7 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 		if _, err := rand.Read(nonce); err != nil {
 			return fmt.Errorf("生成随机数失败: %v", err)
 		}
-		// 写入 nonce
+		// 写入 nonce（在文件头之后）
 		if _, err := outFile.Write(nonce); err != nil {
 			return fmt.Errorf("写入 nonce 失败: %v", err)
 		}
@@ -111,11 +116,6 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 		}
 		defer flateWriter.Close()
 		finalWriter = flateWriter
-	}
-	
-	// 写入文件头
-	if err := writeHeaderWithFlags(finalWriter, options.Compress, options.Encrypt); err != nil {
-		return fmt.Errorf("写入文件头失败: %v", err)
 	}
 	
 	// 标准化源路径
@@ -196,7 +196,7 @@ func (ew *encryptWriter) Write(p []byte) (n int, err error) {
 	
 	// 当缓冲区足够大时，加密并写入
 	// 使用块大小来分批加密（避免内存过大）
-	blockSize := 64 * 1024 // 64KB
+	blockSize := 65536 // 64 * 1024, 64KB
 	for len(ew.buffer) >= blockSize {
 		chunk := ew.buffer[:blockSize]
 		ew.buffer = ew.buffer[blockSize:]
