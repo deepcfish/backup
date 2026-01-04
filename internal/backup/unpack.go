@@ -253,7 +253,8 @@ func (dr *decryptReader) Read(p []byte) (n int, err error) {
 	}
 	
 	// 读取加密块
-	// 每个块的结构：nonce(12字节) + 密文
+	// 每个块的结构：nonce(12字节) + 密文(包含tag，16字节)
+	// encryptWriter 先写入 nonce，然后写入密文
 	nonceSize := dr.gcm.NonceSize()
 	
 	// 先读取 nonce
@@ -265,22 +266,42 @@ func (dr *decryptReader) Read(p []byte) (n int, err error) {
 		return 0, fmt.Errorf("读取 nonce 失败: %v", err)
 	}
 	
-	// 读取密文长度（我们需要知道密文的大小）
+	// 读取密文（包括 tag）
 	// 由于 GCM 的密文长度 = 明文长度 + tag长度(16字节)
 	// 我们尝试读取一个合理大小的块
 	blockSize := 64 * 1024 // 64KB 明文
 	ciphertextSize := blockSize + dr.gcm.Overhead()
 	ciphertext := make([]byte, ciphertextSize)
 	
-	read, err := dr.reader.Read(ciphertext)
-	if read == 0 {
-		return 0, err
+	// 使用 ReadFull 读取完整块，但如果遇到 EOF，说明是最后一个块（可能不完整）
+	read, err := io.ReadFull(dr.reader, ciphertext)
+	isUnexpectedEOF := false
+	if err != nil {
+		if err == io.EOF {
+			// 文件结束，没有更多数据
+			return 0, io.EOF
+		}
+		if err == io.ErrUnexpectedEOF {
+			// 最后一个不完整的块，使用实际读取的数据
+			ciphertext = ciphertext[:read]
+			isUnexpectedEOF = true
+		} else {
+			return 0, fmt.Errorf("读取密文失败: %v", err)
+		}
+	}
+	
+	// 如果读取的数据太少（少于 tag 大小），说明数据不完整
+	if len(ciphertext) < dr.gcm.Overhead() {
+		if isUnexpectedEOF {
+			return 0, io.EOF
+		}
+		return 0, fmt.Errorf("密文数据不完整: 只读取了 %d 字节", len(ciphertext))
 	}
 	
 	// 解密
-	plaintext, err := dr.gcm.Open(nil, blockNonce, ciphertext[:read], nil)
+	plaintext, err := dr.gcm.Open(nil, blockNonce, ciphertext, nil)
 	if err != nil {
-		return 0, fmt.Errorf("解密失败: %v", err)
+		return 0, fmt.Errorf("解密失败（可能是密码错误）: %v", err)
 	}
 	
 	// 将解密后的数据复制到输出

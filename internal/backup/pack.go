@@ -207,10 +207,13 @@ func (ew *encryptWriter) Write(p []byte) (n int, err error) {
 			return 0, err
 		}
 		
-		// 加密数据
-		ciphertext := ew.gcm.Seal(nonce, nonce, chunk, nil)
+		// 加密数据（nonce 不会被包含在密文中，需要单独写入）
+		ciphertext := ew.gcm.Seal(nil, nonce, chunk, nil)
 		
-		// 写入加密后的数据
+		// 先写入 nonce，然后写入密文
+		if _, err := ew.writer.Write(nonce); err != nil {
+			return 0, err
+		}
 		if _, err := ew.writer.Write(ciphertext); err != nil {
 			return 0, err
 		}
@@ -226,7 +229,11 @@ func (ew *encryptWriter) Close() error {
 		if _, err := rand.Read(nonce); err != nil {
 			return err
 		}
-		ciphertext := ew.gcm.Seal(nonce, nonce, ew.buffer, nil)
+		ciphertext := ew.gcm.Seal(nil, nonce, ew.buffer, nil)
+		// 先写入 nonce，然后写入密文
+		if _, err := ew.writer.Write(nonce); err != nil {
+			return err
+		}
 		if _, err := ew.writer.Write(ciphertext); err != nil {
 			return err
 		}
