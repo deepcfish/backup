@@ -74,6 +74,7 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 	
 	// 创建写入链：文件 -> 加密 -> 压缩 -> 实际写入
 	var finalWriter io.Writer = outFile
+	var encWriter *encryptWriter // 保存加密写入器的引用
 	
 	// 如果启用加密，添加加密层
 	var aesGCM cipher.AEAD
@@ -101,11 +102,12 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 			return fmt.Errorf("写入 nonce 失败: %v", err)
 		}
 		// 创建加密写入器
-		finalWriter = &encryptWriter{
+		encWriter = &encryptWriter{
 			writer: outFile,
 			gcm:    aesGCM,
 			nonce:  nonce,
 		}
+		finalWriter = encWriter
 	}
 	
 	// 如果启用压缩，添加压缩层
@@ -137,11 +139,9 @@ func PackWithOptions(root string, archivePath string, filter *Filter, options Pa
 	}
 	
 	// 如果使用了加密写入器，需要关闭它来刷新缓冲区
-	if options.Encrypt {
-		if encWriter, ok := finalWriter.(*encryptWriter); ok {
-			if err := encWriter.Close(); err != nil {
-				return fmt.Errorf("关闭加密写入器失败: %v", err)
-			}
+	if encWriter != nil {
+		if err := encWriter.Close(); err != nil {
+			return fmt.Errorf("关闭加密写入器失败: %v", err)
 		}
 	}
 	
