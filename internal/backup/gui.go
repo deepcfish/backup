@@ -191,7 +191,7 @@ func PackClicked(w fyne.Window, options PackOptions, filter *Filter) {
 				dialog.ShowError(fmt.Errorf("启用加密时必须提供密码"), w)
 				return
 			}
-			err = PackWithOptions(root, archivePath, filter, options)
+			err = PackWithOptions(root, archivePath + ".tar", filter, options)
 			if err != nil {
 				dialog.ShowError(err, w)
 			} else {
